@@ -1,0 +1,236 @@
+---
+title: "Treasurer's Report"
+author: "David Barron"
+date: "`r format(Sys.Date(), '%d %B %Y' )`"
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(kableExtra)
+
+opts_chunk$set(echo = FALSE)
+options(knitr.kable.NA = '')
+
+# Format money output
+inline_hook <- function(x){
+  format(x, nsmall = 2, scientific = FALSE, big.mark = ",")
+}
+
+knit_hooks$set(inline = inline_hook)
+
+```
+
+```{r intro, message=FALSE}
+library(readxl)
+library(tidyverse)
+
+year <- 2025  # for filename
+
+```
+
+```{r data, message=FALSE}
+
+fn <- paste0("C:\\Users\\dnbar\\Dropbox\\OAS\\OAS_Finances_", year, "\\OAS ", year, ".xlsx")
+
+read_dta <- function(fn, sheet){
+  read_xlsx(fn,
+                 sheet = sheet) %>%
+        filter(Category != "Transfer Out") %>%  # remove transfers between accounts
+        filter(Category != "Transfer In")
+}
+
+dta <- read_dta(fn, "Current account")
+savings.dta <- read_dta(fn, "Savings account")
+
+nrows <- nrow(dta)
+
+# Summary of income and expenditure by month
+
+sum_dta <- function(dta){
+  dta %>%
+          mutate(Date = lubridate::ymd(Date),
+                 Month = lubridate::month(Date)) %>%
+        group_by(Month) %>%
+        summarise(
+          Expend = sum(Expenditure, na.rm = TRUE),
+          Inc = sum(Income, na.rm = TRUE)
+        )  
+}
+
+dta.sum <- sum_dta(dta)
+savings.dta.sum <- sum_dta(savings.dta)
+
+# calculate cummulative amounts for plotting
+calc.cumsum <- function(dta){
+  dta %>%
+    mutate(
+          Income = cumsum(Inc),
+          Expenditure = cumsum(Expend)
+        ) %>%
+        select(Month, Income, Expenditure)
+}
+
+dta.cumsum <- calc.cumsum(dta.sum)
+savings.dta.cumsum <- calc.cumsum(savings.dta.sum)
+  
+num.months <- dim(dta.cumsum)[1]
+num.months.sav <- dim(savings.dta.cumsum)[1]
+
+# Transform data for plotting
+
+calc.long <- function(dta) {
+  tmp <- dta %>% pivot_longer(
+              cols = Income:Expenditure,
+              names_to = "Type",
+              values_to = "Amount"
+  ) 
+}
+
+dta.long <- calc.long(dta.cumsum)
+savings.dta.long <- calc.long(savings.dta.cumsum)
+
+
+# Add together amounts from current and savings accounts
+# Have to take account of times when there have been no changes to savings account
+#  during the current month
+
+total.dta.long.dta <- full_join(dta.long, savings.dta.long, 
+                            by = c("Month", "Type"))
+total.dta.long.dta[is.na(total.dta.long.dta[, 4]), 4] <- 0
+
+total.dta.long <- total.dta.long.dta %>%
+  mutate(Amount = Amount.x + Amount.y) %>%
+  select(Month, Type, Amount)
+
+
+nrow.savings <- nrow(savings.dta)
+savings.balance <- as.numeric(savings.dta[nrow.savings, 6])
+
+calc.sum <- function(dta){
+  dta %>%
+  group_by(Category) %>%
+  summarise(Income = sum(Income, na.rm = TRUE),
+            Expenditure = sum(Expenditure, na.rm = TRUE))
+}
+
+sum_tab <- calc.sum(dta)
+
+savings.sum_tab <- calc.sum(savings.dta)
+  
+total.income <- as.numeric(dta.cumsum[num.months, 2]) + as.numeric(savings.dta.cumsum[num.months.sav, 2]) 
+
+total.expenditure <- as.numeric(dta.cumsum[num.months, 3]) + as.numeric(savings.dta.cumsum[num.months.sav, 3]) 
+
+
+```
+
+```{r plot}
+
+labels <- month.abb[1:num.months]
+
+total.dta.long  %>%
+  ggplot(aes(x = Month, y = Amount, colour = Type)) + 
+          geom_point() +
+          geom_line() +
+          scale_x_continuous(
+            breaks = 1:12,
+            minor_breaks = NULL,
+            label =  month.abb
+          ) + 
+  scale_y_continuous(label = scales::label_dollar(prefix="£")) +
+  theme_light() 
+
+```
+
+
+## Income and Expenditure
+
+- Total income since 1 January 2024 is £`r total.income`
+
+- Total expenditure since 1 January 2024 is £`r total.expenditure`
+
+- **The current year's `r ifelse(total.income - total.expenditure > 0, "surplus", "deficit")` is £`r total.income - total.expenditure`**.
+
+- Current account balance £`r as.numeric(dta[nrows,6]) `
+
+- Savings account balance £`r savings.balance`
+
+
+\pagebreak
+
+### Summary of income and expenditure
+
+
+```{r summary}
+sum_tab <- bind_rows(sum_tab, savings.sum_tab)
+
+sum_tab %>% kbl(format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = FALSE) %>%
+    row_spec(0, bold = TRUE) # %>%
+#  kable_styling(latex_options = "hold_position")
+
+```
+
+
+
+```{r exhibitions, eval=FALSE}
+
+calc_totals <- function(tabdata){
+  tot_row <- tibble(Category = "TOTAL", Income = sum(tabdata[, "Income"]), 
+                    Expenditure = sum(tabdata[, "Expenditure"]))
+  bind_rows(tabdata, tot_row)
+}
+
+calc_exhibitions <- function(dta, exhibition = "Open"){
+  dta %>%
+          mutate(Date = lubridate::ymd(Date),
+                 Month = lubridate::month(Date)) %>%
+        filter(Exhibition == exhibition) %>%
+        group_by(Category) %>%
+        summarise(
+          Income = sum(Income, na.rm = TRUE),
+          Expenditure = sum(Expenditure, na.rm = TRUE)
+        ) %>%
+    calc_totals(.)
+}
+ 
+members_dta <- calc_exhibitions(dta, "Members")
+
+
+open_dta <- calc_exhibitions(dta)
+
+```
+
+
+### Members' exhibition
+
+
+```{r members, eval=FALSE}
+
+nrow_mbs <- dim(members_dta)[1]
+
+members_dta %>% kbl(format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = FALSE) %>%
+  row_spec(nrow_mbs, bold = TRUE, color = "white", background = "black")%>%
+  row_spec(0, bold = TRUE) #%>%
+#  kable_styling(latex_options = "hold_position")
+
+```
+
+
+\pagebreak
+
+### Open exhibition
+
+```{r open, eval=FALSE}
+nrow_open <- dim(open_dta)[1]
+open_dta %>% kbl(format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = FALSE) %>%
+  row_spec(nrow_open, bold = TRUE, color = "white", background = "black") %>%
+  row_spec(0, bold = TRUE)# %>%
+#  kable_styling(latex_options = "hold_position")
+  
+```
+
