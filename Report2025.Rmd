@@ -144,6 +144,12 @@ total.dta.long  %>%
 
 ```
 
+```{r stripe}
+stripe <-  read_xlsx(fn,
+                 sheet = "Stripe")
+fees <- sum(stripe[, "Fee"])
+
+```
 
 ## Income and Expenditure
 
@@ -163,7 +169,7 @@ total.dta.long  %>%
 ### Summary of income and expenditure
 
 
-```{r summary}
+```{r summary, eval=FALSE}
 sum_tab <- bind_rows(sum_tab, savings.sum_tab)
 
 sum_tab %>% kbl(format.args = list(big.mark = ",")) %>%
@@ -172,7 +178,6 @@ sum_tab %>% kbl(format.args = list(big.mark = ",")) %>%
 #  kable_styling(latex_options = "hold_position")
 
 ```
-
 
 
 ```{r exhibitions, eval=FALSE}
@@ -204,7 +209,6 @@ open_dta <- calc_exhibitions(dta)
 ```
 
 
-### Members' exhibition
 
 
 ```{r members, eval=FALSE}
@@ -222,7 +226,7 @@ members_dta %>% kbl(format.args = list(big.mark = ",")) %>%
 
 \pagebreak
 
-### Open exhibition
+
 
 ```{r open, eval=FALSE}
 nrow_open <- dim(open_dta)[1]
@@ -234,3 +238,6 @@ open_dta %>% kbl(format.args = list(big.mark = ",")) %>%
   
 ```
 
+*Notes*
+
+- Stripe fees: £`r fees`.
