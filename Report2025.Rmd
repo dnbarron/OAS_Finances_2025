@@ -35,10 +35,9 @@ year <- 2025  # for filename
 fn <- paste0("C:\\Users\\dnbar\\Dropbox\\OAS\\OAS_Finances_", year, "\\OAS ", year, ".xlsx")
 
 read_dta <- function(fn, sheet){
-  read_xlsx(fn,
-                 sheet = sheet) %>%
-        filter(Category != "Transfer Out") %>%  # remove transfers between accounts
-        filter(Category != "Transfer In")
+  read_xlsx(fn, sheet = sheet) %>%
+    filter(Category != "Transfer Out") %>%  # remove transfers between accounts
+    filter(Category != "Transfer In")
 }
 
 dta <- read_dta(fn, "Current account")
@@ -50,13 +49,13 @@ nrows <- nrow(dta)
 
 sum_dta <- function(dta){
   dta %>%
-          mutate(Date = lubridate::ymd(Date),
-                 Month = lubridate::month(Date)) %>%
-        group_by(Month) %>%
-        summarise(
+    mutate(Date = lubridate::ymd(Date),
+           Month = lubridate::month(Date)) %>%
+      group_by(Month) %>%
+      summarise(
           Expend = sum(Expenditure, na.rm = TRUE),
           Inc = sum(Income, na.rm = TRUE)
-        )  
+      )  
 }
 
 dta.sum <- sum_dta(dta)
@@ -68,8 +67,8 @@ calc.cumsum <- function(dta){
     mutate(
           Income = cumsum(Inc),
           Expenditure = cumsum(Expend)
-        ) %>%
-        select(Month, Income, Expenditure)
+    ) %>%
+    select(Month, Income, Expenditure)
 }
 
 dta.cumsum <- calc.cumsum(dta.sum)
@@ -119,14 +118,14 @@ sum_tab <- calc.sum(dta)
 
 savings.sum_tab <- calc.sum(savings.dta)
   
-total.income <- as.numeric(dta.cumsum[num.months, 2]) + as.numeric(savings.dta.cumsum[num.months.sav, 2]) 
+total.income <- sum(sum_tab$Income) 
 
-total.expenditure <- as.numeric(dta.cumsum[num.months, 3]) + as.numeric(savings.dta.cumsum[num.months.sav, 3]) 
+total.expenditure <- sum(sum_tab$Expenditure) 
 
 
 ```
 
-```{r plot}
+```{r plot, message=FALSE}
 
 labels <- month.abb[1:num.months]
 
@@ -144,18 +143,16 @@ total.dta.long  %>%
 
 ```
 
-```{r stripe}
-stripe <-  read_xlsx(fn,
-                 sheet = "Stripe")
-fees <- sum(stripe[, "Fee"])
-
+```{r fees}
+stripe <-  read_xlsx(fn, sheet = "Stripe")
+stripe_fees <- sum(stripe[, "Fee"])
 ```
 
 ## Income and Expenditure
 
-- Total income since 1 January 2024 is £`r total.income`
+- Total income since 1 January 2025 is £`r total.income`
 
-- Total expenditure since 1 January 2024 is £`r total.expenditure`
+- Total expenditure since 1 January 2025 is £`r total.expenditure`
 
 - **The current year's `r ifelse(total.income - total.expenditure > 0, "surplus", "deficit")` is £`r total.income - total.expenditure`**.
 
@@ -169,7 +166,7 @@ fees <- sum(stripe[, "Fee"])
 ### Summary of income and expenditure
 
 
-```{r summary, eval=FALSE}
+```{r summary, eval=TRUE}
 sum_tab <- bind_rows(sum_tab, savings.sum_tab)
 
 sum_tab %>% kbl(format.args = list(big.mark = ",")) %>%
@@ -180,7 +177,7 @@ sum_tab %>% kbl(format.args = list(big.mark = ",")) %>%
 ```
 
 
-```{r exhibitions, eval=FALSE}
+```{r exhibitions, eval=TRUE}
 
 calc_totals <- function(tabdata){
   tot_row <- tibble(Category = "TOTAL", Income = sum(tabdata[, "Income"]), 
@@ -211,7 +208,7 @@ open_dta <- calc_exhibitions(dta)
 
 
 
-```{r members, eval=FALSE}
+```{r members, eval=TRUE}
 
 nrow_mbs <- dim(members_dta)[1]
 
@@ -240,4 +237,4 @@ open_dta %>% kbl(format.args = list(big.mark = ",")) %>%
 
 *Notes*
 
-- Stripe fees: £`r fees`.
+- Stripe fees: £`r stripe_fees`.
