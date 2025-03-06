@@ -27,8 +27,10 @@ library(readxl)
 library(tidyverse)
 
 year <- 2025  # for filename
+prevYear <- 2024
 
 ```
+
 
 ```{r data, message=FALSE}
 
@@ -100,8 +102,9 @@ total.dta.long.dta <- full_join(dta.long, savings.dta.long,
 total.dta.long.dta[is.na(total.dta.long.dta[, 4]), 4] <- 0
 
 total.dta.long <- total.dta.long.dta %>%
-  mutate(Amount = Amount.x + Amount.y) %>%
-  select(Month, Type, Amount)
+  mutate(Amount = Amount.x + Amount.y,
+         Year = 2025) %>%
+  select(Month, Type, Amount, Year)
 
 
 nrow.savings <- nrow(savings.dta)
@@ -125,14 +128,76 @@ total.expenditure <- sum(sum_tab$Expenditure)
 
 ```
 
+
+```{r prevdata, message=FALSE, warning=FALSE}
+
+prevfn <- paste0("C:\\Users\\dnbar\\Dropbox\\OAS\\", prevYear, "\\OAS ", prevYear, ".xlsx")
+
+
+prev.dta <- read_dta(prevfn, "Current account")
+prev.savings.dta <- read_dta(prevfn, "Savings account")
+
+prev.nrows <- nrow(prev.dta)
+
+# Summary of income and expenditure by month
+
+prev.dta.sum <- sum_dta(prev.dta)
+prev.savings.dta.sum <- sum_dta(prev.savings.dta)
+
+# calculate cummulative amounts for plotting
+
+prev.dta.cumsum <- calc.cumsum(prev.dta.sum)
+prev.savings.dta.cumsum <- calc.cumsum(prev.savings.dta.sum)
+  
+prev.num.months <- dim(prev.dta.cumsum)[1]
+prev.num.months.sav <- dim(prev.savings.dta.cumsum)[1]
+
+# Transform data for plotting
+
+
+prev.dta.long <- calc.long(prev.dta.cumsum)
+prev.savings.dta.long <- calc.long(prev.savings.dta.cumsum)
+
+
+# Add together amounts from current and savings accounts
+# Have to take account of times when there have been no changes to savings account
+#  during the current month
+
+prev.total.dta.long.dta <- full_join(prev.dta.long, prev.savings.dta.long, 
+                            by = c("Month", "Type"))
+prev.total.dta.long.dta[is.na(prev.total.dta.long.dta[, 4]), 4] <- 0
+
+prev.total.dta.long <- prev.total.dta.long.dta %>%
+  mutate(Amount = Amount.x + Amount.y,
+         Year = 2024) %>%
+  filter(!is.na(Month)) %>%
+  select(Month, Type, Amount, Year)
+
+
+prev.nrow.savings <- nrow(prev.savings.dta)
+prev.savings.balance <- as.numeric(prev.savings.dta[prev.nrow.savings, 6])
+
+prev.sum_tab <- calc.sum(prev.dta)
+
+prev.savings.sum_tab <- calc.sum(prev.savings.dta)
+  
+prev.total.income <- as.numeric(prev.dta.cumsum[prev.num.months, 2]) + as.numeric(prev.savings.dta.cumsum[prev.num.months.sav, 2]) 
+
+prev.total.expenditure <- as.numeric(prev.dta.cumsum[prev.num.months, 3]) + as.numeric(prev.savings.dta.cumsum[prev.num.months.sav, 3]) 
+
+
+```
+
+
 ```{r plot, message=FALSE}
 
-labels <- month.abb[1:num.months]
+labels <- month.abb[1:12]
 
-total.dta.long  %>%
-  ggplot(aes(x = Month, y = Amount, colour = Type)) + 
-          geom_point() +
-          geom_line() +
+comb.dta <- rbind(total.dta.long, prev.total.dta.long)
+
+comb.dta %>% mutate(Year = factor(Year)) %>%
+  ggplot(aes(x = Month, y = Amount, color = Type, linetype = Year)) +
+  geom_point() + geom_line() +
           scale_x_continuous(
             breaks = 1:12,
             minor_breaks = NULL,
@@ -140,6 +205,31 @@ total.dta.long  %>%
           ) + 
   scale_y_continuous(label = scales::label_dollar(prefix="£")) +
   theme_light() 
+
+# total.dta.long  %>%
+#   ggplot(aes(x = Month, y = Amount, colour = Type)) + 
+#           geom_point() +
+#           geom_line() +
+#           scale_x_continuous(
+#             breaks = 1:12,
+#             minor_breaks = NULL,
+#             label =  month.abb
+#           ) + 
+#   scale_y_continuous(label = scales::label_dollar(prefix="£")) +
+#   theme_light() 
+# 
+# prev.total.dta.long  %>%
+#   ggplot(aes(x = Month, y = Amount, colour = Type)) + 
+#           geom_point() +
+#           geom_line() +
+#           scale_x_continuous(
+#             breaks = 1:12,
+#             minor_breaks = NULL,
+#             label =  month.abb
+#           ) + 
+#   scale_y_continuous(label = scales::label_dollar(prefix="£")) +
+#   theme_light()
+# 
 
 ```
 
