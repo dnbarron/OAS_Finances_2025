@@ -103,7 +103,7 @@ total.dta.long.dta[is.na(total.dta.long.dta[, 4]), 4] <- 0
 
 total.dta.long <- total.dta.long.dta %>%
   mutate(Amount = Amount.x + Amount.y,
-         Year = 2025) %>%
+         Year = year) %>%  #need a year variable for when data is combined
   select(Month, Type, Amount, Year)
 
 
@@ -131,6 +131,7 @@ total.expenditure <- sum(sum_tab$Expenditure)
 
 ```{r prevdata, message=FALSE, warning=FALSE}
 
+# Read and process previous year's data
 prevfn <- paste0("C:\\Users\\dnbar\\Dropbox\\OAS\\", prevYear, "\\OAS ", prevYear, ".xlsx")
 
 
@@ -169,7 +170,7 @@ prev.total.dta.long.dta[is.na(prev.total.dta.long.dta[, 4]), 4] <- 0
 
 prev.total.dta.long <- prev.total.dta.long.dta %>%
   mutate(Amount = Amount.x + Amount.y,
-         Year = 2024) %>%
+         Year = prevYear) %>%  # need a Year variable for when data is combined
   filter(!is.na(Month)) %>%
   select(Month, Type, Amount, Year)
 
@@ -193,6 +194,8 @@ prev.total.expenditure <- as.numeric(prev.dta.cumsum[prev.num.months, 3]) + as.n
 
 labels <- month.abb[1:12]
 
+# combine data from current and previous years
+
 comb.dta <- rbind(total.dta.long, prev.total.dta.long)
 
 comb.dta %>% mutate(Year = factor(Year)) %>%
@@ -204,32 +207,10 @@ comb.dta %>% mutate(Year = factor(Year)) %>%
             label =  month.abb
           ) + 
   scale_y_continuous(label = scales::label_dollar(prefix="£")) +
+  scale_linetype_manual(values = c("twodash", "solid")) +
+  scale_colour_manual(values = c("red", "green3")) +
   theme_light() 
 
-# total.dta.long  %>%
-#   ggplot(aes(x = Month, y = Amount, colour = Type)) + 
-#           geom_point() +
-#           geom_line() +
-#           scale_x_continuous(
-#             breaks = 1:12,
-#             minor_breaks = NULL,
-#             label =  month.abb
-#           ) + 
-#   scale_y_continuous(label = scales::label_dollar(prefix="£")) +
-#   theme_light() 
-# 
-# prev.total.dta.long  %>%
-#   ggplot(aes(x = Month, y = Amount, colour = Type)) + 
-#           geom_point() +
-#           geom_line() +
-#           scale_x_continuous(
-#             breaks = 1:12,
-#             minor_breaks = NULL,
-#             label =  month.abb
-#           ) + 
-#   scale_y_continuous(label = scales::label_dollar(prefix="£")) +
-#   theme_light()
-# 
 
 ```
 
@@ -263,6 +244,7 @@ sum_tab %>% kbl(format.args = list(big.mark = ",")) %>%
   kable_classic(full_width = FALSE) %>%
     row_spec(0, bold = TRUE) # %>%
 #  kable_styling(latex_options = "hold_position")
+
 
 ```
 
