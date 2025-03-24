@@ -3,7 +3,8 @@ title: "Treasurer's Report"
 author: "David Barron"
 date: "`r format(Sys.Date(), '%d %B %Y' )`"
 output:
-  html_document
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -216,7 +217,7 @@ comb.dta %>% mutate(Year = factor(Year)) %>%
 
 ```{r fees}
 stripe <-  read_xlsx(fn, sheet = "Stripe")
-stripe_fees <- sum(stripe[, "Fee"])
+stripe_fees <- sum(stripe[, "Fee"], na.rm = TRUE)
 ```
 
 ## Income and Expenditure
@@ -234,7 +235,6 @@ stripe_fees <- sum(stripe[, "Fee"])
 
 \pagebreak
 
-### Summary of income and expenditure
 
 
 ```{r summary, eval=TRUE}
@@ -247,6 +247,7 @@ sum_tab %>% kbl(format.args = list(big.mark = ",")) %>%
 
 
 ```
+
 
 
 ```{r exhibitions, eval=TRUE}
@@ -279,6 +280,8 @@ open_dta <- calc_exhibitions(dta)
 
 
 
+## Members exhibition
+
 
 ```{r members, eval=TRUE}
 
@@ -287,8 +290,8 @@ nrow_mbs <- dim(members_dta)[1]
 members_dta %>% kbl(format.args = list(big.mark = ",")) %>%
   kable_classic(full_width = FALSE) %>%
   row_spec(nrow_mbs, bold = TRUE, color = "white", background = "black")%>%
-  row_spec(0, bold = TRUE) #%>%
-#  kable_styling(latex_options = "hold_position")
+  row_spec(0, bold = TRUE) %>%
+  kable_styling(latex_options = "hold_position")
 
 ```
 
@@ -302,8 +305,8 @@ nrow_open <- dim(open_dta)[1]
 open_dta %>% kbl(format.args = list(big.mark = ",")) %>%
   kable_classic(full_width = FALSE) %>%
   row_spec(nrow_open, bold = TRUE, color = "white", background = "black") %>%
-  row_spec(0, bold = TRUE)# %>%
-#  kable_styling(latex_options = "hold_position")
+  row_spec(0, bold = TRUE) %>%
+  kable_styling(latex_options = "hold_position")
   
 ```
 
