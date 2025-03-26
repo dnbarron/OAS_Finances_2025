@@ -218,6 +218,9 @@ comb.dta %>% mutate(Year = factor(Year)) %>%
 ```{r fees}
 stripe <-  read_xlsx(fn, sheet = "Stripe")
 stripe_fees <- sum(stripe[, "Fee"], na.rm = TRUE)
+
+sumup <- read_xlsx(fn, sheet = "SumUp")
+sumup_fees <- sum(sumup[, "Fee"], na.rm = TRUE)
 ```
 
 ## Income and Expenditure
@@ -313,3 +316,4 @@ open_dta %>% kbl(format.args = list(big.mark = ",")) %>%
 *Notes*
 
 - Stripe fees: £`r stripe_fees`.
+- SumUp fees: £`r sumup_fees`
