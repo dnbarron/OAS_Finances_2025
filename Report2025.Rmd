@@ -246,7 +246,8 @@ nrow_sum <- dim(sum_tab)[1]
 sum_tab %>% kbl(format.args = list(big.mark = ",")) %>%
   kable_classic(full_width = FALSE, html_font = "Georgia") %>%
    # row_spec(nrow_sum, bold = TRUE, color = "white", background = "black")%>%
-    row_spec(0, bold = TRUE) #%>%
+    row_spec(0, bold = TRUE) %>%
+    row_spec(0:nrow_sum, color = "#000080")
   #  kable_styling(latex_options = "hold_position")
 
 ```
@@ -286,6 +287,7 @@ nrow_mbs <- dim(members_dta)[1]
 
 members_dta %>% kbl(format.args = list(big.mark = ",")) %>%
   kable_classic(full_width = FALSE, html_font = "Georgia") %>%
+  row_spec(0:nrow_mbs, color = "#000080") %>%
   row_spec(nrow_mbs, bold = TRUE, color = "white", background = "black")%>%
   row_spec(0, bold = TRUE) # %>%
 #  kable_styling(latex_options = "hold_position")
