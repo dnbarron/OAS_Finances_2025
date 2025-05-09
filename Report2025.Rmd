@@ -279,22 +279,32 @@ open_dta <- calc_exhibitions(dta)
 
 ya_dta <- calc_exhibitions(dta, "Young artists")
 
+exhibition_table <- function(dta){
+  
+  n <- dim(dta)[1]
+  
+  dta %>% kbl(format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = FALSE, html_font = "Georgia") %>%
+  row_spec(0:n, color = "#000080") %>%
+  row_spec(n, bold = TRUE, color = "white", background = "black")%>%
+  row_spec(0, bold = TRUE) 
+}
+
+exhibition_outcome <- function(dta){
+  
+  n <- dim(dta)[1]
+  as.numeric(dta[n, 2] - dta[n, 3])
+}
+
 ```
 
 ## Members exhibition
 
 ```{r members, eval=TRUE}
 
-nrow_mbs <- dim(members_dta)[1]
+exhibition_table(members_dta)
+members_outcome <- exhibition_outcome(members_dta)
 
-members_dta %>% kbl(format.args = list(big.mark = ",")) %>%
-  kable_classic(full_width = FALSE, html_font = "Georgia") %>%
-  row_spec(0:nrow_mbs, color = "#000080") %>%
-  row_spec(nrow_mbs, bold = TRUE, color = "white", background = "black")%>%
-  row_spec(0, bold = TRUE) # %>%
-#  kable_styling(latex_options = "hold_position")
-
-members_outcome <- as.numeric(members_dta[nrow_mbs, 2] - members_dta[nrow_mbs, 3])
 ```
 
 
@@ -303,28 +313,16 @@ members_outcome <- as.numeric(members_dta[nrow_mbs, 2] - members_dta[nrow_mbs, 3
 \pagebreak
 
 ```{r open, eval=FALSE}
-nrow_open <- dim(open_dta)[1]
-open_dta %>% kbl(format.args = list(big.mark = ",")) %>%
-  kable_classic(full_width = FALSE) %>%
-  row_spec(nrow_open, bold = TRUE, color = "white", background = "black") %>%
-  row_spec(0, bold = TRUE) %>%
-  kable_styling(latex_options = "hold_position")
+exhibition_table(open_dta)
+open_outcome <- exhibition_outcome(open_dta)
   
 ```
 
 ## Young artists exhibition
 
 ```{r ya, eval=TRUE}
-nrow_ya <- dim(ya_dta)[1]
-
-ya_dta %>% kbl(format.args = list(big.mark = ",")) %>%
-  kable_classic(full_width = FALSE, html_font = "Georgia") %>%
-  row_spec(0:nrow_ya, color = "#000080") %>%
-  row_spec(nrow_ya, bold = TRUE, color = "white", background = "black")%>%
-  row_spec(0, bold = TRUE) # %>%
-#  kable_styling(latex_options = "hold_position")
-
-ya_outcome <- as.numeric(ya_dta[nrow_ya, 2] - ya_dta[nrow_ya, 3])
+exhibition_table(ya_dta)
+ya_outcome <- exhibition_outcome(ya_dta)
 
 ```
 -  **Young artists exhibition cost: £`r -ya_outcome` **
