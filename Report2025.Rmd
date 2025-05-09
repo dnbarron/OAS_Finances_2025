@@ -277,6 +277,8 @@ members_dta <- calc_exhibitions(dta, "Members")
 
 open_dta <- calc_exhibitions(dta)
 
+ya_dta <- calc_exhibitions(dta, "Young artists")
+
 ```
 
 ## Members exhibition
@@ -292,7 +294,11 @@ members_dta %>% kbl(format.args = list(big.mark = ",")) %>%
   row_spec(0, bold = TRUE) # %>%
 #  kable_styling(latex_options = "hold_position")
 
+members_outcome <- as.numeric(members_dta[nrow_mbs, 2] - members_dta[nrow_mbs, 3])
 ```
+
+
+-  **Members exhibition surplus: £`r members_outcome` **
 
 \pagebreak
 
@@ -306,7 +312,27 @@ open_dta %>% kbl(format.args = list(big.mark = ",")) %>%
   
 ```
 
+## Young artists exhibition
+
+```{r ya, eval=TRUE}
+nrow_ya <- dim(ya_dta)[1]
+
+ya_dta %>% kbl(format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = FALSE, html_font = "Georgia") %>%
+  row_spec(0:nrow_ya, color = "#000080") %>%
+  row_spec(nrow_ya, bold = TRUE, color = "white", background = "black")%>%
+  row_spec(0, bold = TRUE) # %>%
+#  kable_styling(latex_options = "hold_position")
+
+ya_outcome <- as.numeric(ya_dta[nrow_ya, 2] - ya_dta[nrow_ya, 3])
+
+```
+-  **Young artists exhibition cost: £`r -ya_outcome` **
+
+
 *Notes*
+
+- St John's have submitted their invoice, but it is being queried as it is significantly larger than expected.
 
 -   Stripe fees: £`r stripe_fees`
 -   SumUp fees: £`r sumup_fees`
