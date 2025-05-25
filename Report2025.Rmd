@@ -10,6 +10,7 @@ output:
       primary: '#00FF00'
       base_font: Georgia
       heading_font: Arial
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -308,9 +309,7 @@ members_outcome <- exhibition_outcome(members_dta)
 ```
 
 
--  **Members exhibition surplus: £`r members_outcome` **
-
-\pagebreak
+-  **Members exhibition cost: £`r -members_outcome` **
 
 ```{r open, eval=FALSE}
 exhibition_table(open_dta)
@@ -329,8 +328,6 @@ ya_outcome <- exhibition_outcome(ya_dta)
 
 
 *Notes*
-
-- St John's have submitted their invoice, but it is being queried as it is significantly larger than expected.
 
 -   Stripe fees: £`r stripe_fees`
 -   SumUp fees: £`r sumup_fees`
