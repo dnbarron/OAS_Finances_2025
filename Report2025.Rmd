@@ -20,6 +20,7 @@ library(kableExtra)
 opts_chunk$set(echo = FALSE)
 options(knitr.kable.NA = '')
 
+
 # Format money output
 inline_hook <- function(x){
   format(x, nsmall = 2, scientific = FALSE, big.mark = ",")
