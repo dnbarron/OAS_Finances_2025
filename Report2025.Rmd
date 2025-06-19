@@ -326,6 +326,7 @@ ya_outcome <- exhibition_outcome(ya_dta)
 
 ```
 -  **Young artists exhibition cost: £`r -ya_outcome` **
+- Balance of organisers fees and two prizes still outstanding.
 
 
 *Notes*
