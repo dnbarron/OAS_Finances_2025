@@ -28,6 +28,7 @@ inline_hook <- function(x){
 
 knit_hooks$set(inline = inline_hook)
 
+
 ```
 
 ```{r intro, message=FALSE}
@@ -41,6 +42,8 @@ prevYear <- 2024
 
 
 ```{r functions, message=FALSE}
+
+# Reads data from spreadsheet containing bank transactions
 read_dta <- function(fn, sheet){
   read_xlsx(fn, sheet = sheet) %>%
     filter(Category != "Transfer Out") %>%  # remove transfers between accounts
@@ -76,7 +79,7 @@ calc.cumsum <- function(dta){
 # Transform data for plotting
 
 calc.long <- function(dta) {
-  tmp <- dta %>% pivot_longer(
+  dta %>% pivot_longer(
               cols = Income:Expenditure,
               names_to = "Type",
               values_to = "Amount"
