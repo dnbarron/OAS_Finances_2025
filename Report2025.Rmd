@@ -16,6 +16,7 @@ output:
 ```{r setup, include=FALSE}
 library(knitr)
 library(kableExtra)
+library(here)
 
 opts_chunk$set(echo = FALSE)
 options(knitr.kable.NA = '')
@@ -27,7 +28,6 @@ inline_hook <- function(x){
 }
 
 knit_hooks$set(inline = inline_hook)
-
 
 ```
 
@@ -101,7 +101,7 @@ calc.sum <- function(dta){
 ```
 
 ```{r dataprocessing, message=FALSE}
-fn <- paste0("C:\\Users\\dnbar\\Dropbox\\OAS\\OAS_Finances_", year, "\\OAS ", year, ".xlsx")
+fn <- paste0("OAS ", year, ".xlsx")
 
 dta <- read_dta(fn, sheet = "Current account")
 savings.dta <- read_dta(fn, sheet = "Savings account")
@@ -146,7 +146,7 @@ total.expenditure <- sum(sum_tab$Expenditure)
 ```{r prevdata, message=FALSE, warning=FALSE}
 
 # Read and process previous year's data
-prevfn <- paste0("C:\\Users\\dnbar\\Dropbox\\OAS\\OAS_Finances_", prevYear, "\\OAS ", prevYear, ".xlsx")
+prevfn <- paste0("OAS ", prevYear, ".xlsx")
 
 
 prev.dta <- read_dta(prevfn, sheet = "Current account")
