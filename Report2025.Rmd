@@ -326,11 +326,6 @@ members_outcome <- exhibition_outcome(members_dta)
 
 -  **Members exhibition cost: £`r -members_outcome` **
 
-```{r open, eval=FALSE}
-exhibition_table(open_dta)
-open_outcome <- exhibition_outcome(open_dta)
-  
-```
 
 ## Young artists exhibition
 
@@ -340,7 +335,18 @@ ya_outcome <- exhibition_outcome(ya_dta)
 
 ```
 -  **Young artists exhibition cost: £`r -ya_outcome` **
-- £200 refund from MRS outstanding
+
+
+## Open exhibition
+
+```{r open, eval=TRUE}
+exhibition_table(open_dta)
+open_outcome <- exhibition_outcome(open_dta)
+  
+```
+
+- **Open artists exhibition surplus: £`r open_outcome` **
+
 
 
 *Notes*
