@@ -1,0 +1,372 @@
+---
+title: "OAS Treasure's Report"
+author: "David Barron"
+date: "`r format(Sys.Date(), '%d %B %Y' )`"
+format:
+  html:
+    backgroundcolor: '#FFF8DC'
+    fontcolor: '#000080'
+    mainfont: Georgia
+echo: false
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(readxl)
+library(tidyverse)
+
+year <- 2025 # for filename
+prevYear <- 2024
+
+```
+
+```{r}
+#| label: functions
+#| warning: false
+#| echo: false
+
+# Reads data from spreadsheet containing bank transactions
+read_dta <- function(fn, sheet) {
+  read_xlsx(fn, sheet = sheet) %>%
+    filter(Category != "Transfer Out") %>% # remove transfers between accounts
+    filter(Category != "Transfer In")
+}
+
+
+# Summary of income and expenditure by month
+
+sum_dta <- function(dta) {
+  dta %>%
+    mutate(Date = lubridate::ymd(Date), Month = lubridate::month(Date)) %>%
+    group_by(Month) %>%
+    summarise(
+      Expend = sum(Expenditure, na.rm = TRUE),
+      Inc = sum(Income, na.rm = TRUE)
+    )
+}
+
+# calculate cummulative amounts for plotting
+calc.cumsum <- function(dta) {
+  dta %>%
+    mutate(
+      Income = cumsum(Inc),
+      Expenditure = cumsum(Expend)
+    ) %>%
+    select(Month, Income, Expenditure)
+}
+
+
+# Transform data for plotting
+
+calc.long <- function(dta) {
+  dta %>%
+    pivot_longer(
+      cols = Income:Expenditure,
+      names_to = "Type",
+      values_to = "Amount"
+    )
+}
+
+# Add together amounts from current and savings accounts
+# Have to take account of times when there have been no changes to savings account
+#  during the current month
+
+calc.sum <- function(dta) {
+  dta %>%
+    group_by(Category) %>%
+    summarise(
+      Income = sum(Income, na.rm = TRUE),
+      Expenditure = sum(Expenditure, na.rm = TRUE)
+    )
+}
+
+```
+
+```{r}
+#| label: dataprocessing
+#| echo: false
+#| message: false
+fn <- paste0("OAS ", year, ".xlsx")
+
+dta <- read_dta(fn, sheet = "Current account")
+savings.dta <- read_dta(fn, sheet = "Savings account")
+nrows <- nrow(dta)
+
+dta.sum <- sum_dta(dta)
+savings.dta.sum <- sum_dta(savings.dta)
+
+dta.cumsum <- calc.cumsum(dta.sum)
+savings.dta.cumsum <- calc.cumsum(savings.dta.sum)
+
+num.months <- dim(dta.cumsum)[1]
+num.months.sav <- dim(savings.dta.cumsum)[1]
+
+dta.long <- calc.long(dta.cumsum)
+savings.dta.long <- calc.long(savings.dta.cumsum)
+
+total.dta.long.dta <- full_join(
+  dta.long,
+  savings.dta.long,
+  by = c("Month", "Type")
+)
+total.dta.long.dta[is.na(total.dta.long.dta[, 4]), 4] <- 0
+
+total.dta.long <- total.dta.long.dta %>%
+  mutate(Amount = Amount.x + Amount.y, Year = year) %>% #need a year variable for when data is combined
+  select(Month, Type, Amount, Year)
+
+
+nrow.savings <- nrow(savings.dta)
+savings.balance <- as.numeric(savings.dta[nrow.savings, 6])
+
+sum_tab <- calc.sum(dta)
+
+savings.sum_tab <- calc.sum(savings.dta)
+
+total.income <- sum(sum_tab$Income)
+
+total.expenditure <- sum(sum_tab$Expenditure)
+
+```
+
+```{r}
+#| label: prevdata
+#| message: false
+#| warning: false
+#| echo: false
+
+# Read and process previous year's data
+prevfn <- paste0("OAS ", prevYear, ".xlsx")
+
+
+prev.dta <- read_dta(prevfn, sheet = "Current account")
+prev.savings.dta <- read_dta(prevfn, sheet = "Savings account")
+
+prev.nrows <- nrow(prev.dta)
+
+# Summary of income and expenditure by month
+
+prev.dta.sum <- sum_dta(prev.dta)
+prev.savings.dta.sum <- sum_dta(prev.savings.dta)
+
+# calculate cummulative amounts for plotting
+
+prev.dta.cumsum <- calc.cumsum(prev.dta.sum)
+prev.savings.dta.cumsum <- calc.cumsum(prev.savings.dta.sum)
+
+prev.num.months <- dim(prev.dta.cumsum)[1]
+prev.num.months.sav <- dim(prev.savings.dta.cumsum)[1]
+
+# Transform data for plotting
+
+prev.dta.long <- calc.long(prev.dta.cumsum)
+prev.savings.dta.long <- calc.long(prev.savings.dta.cumsum)
+
+
+# Add together amounts from current and savings accounts
+# Have to take account of times when there have been no changes to savings account
+#  during the current month
+
+prev.total.dta.long.dta <- full_join(
+  prev.dta.long,
+  prev.savings.dta.long,
+  by = c("Month", "Type")
+)
+prev.total.dta.long.dta[is.na(prev.total.dta.long.dta[, 4]), 4] <- 0
+
+prev.total.dta.long <- prev.total.dta.long.dta %>%
+  mutate(Amount = Amount.x + Amount.y, Year = prevYear) %>% # need a Year variable for when data is combined
+  filter(!is.na(Month)) %>%
+  select(Month, Type, Amount, Year)
+
+
+prev.nrow.savings <- nrow(prev.savings.dta)
+prev.savings.balance <- as.numeric(prev.savings.dta[prev.nrow.savings, 6])
+
+prev.sum_tab <- calc.sum(prev.dta)
+
+prev.savings.sum_tab <- calc.sum(prev.savings.dta)
+
+prev.total.income <- as.numeric(prev.dta.cumsum[prev.num.months, 2]) +
+  as.numeric(prev.savings.dta.cumsum[prev.num.months.sav, 2])
+
+prev.total.expenditure <- as.numeric(prev.dta.cumsum[prev.num.months, 3]) +
+  as.numeric(prev.savings.dta.cumsum[prev.num.months.sav, 3])
+
+```
+
+```{r}
+#| label: plot
+#| echo: false
+#| message: false
+
+labels <- month.abb[1:12]
+
+# combine data from current and previous years
+
+comb.dta <- rbind(total.dta.long, prev.total.dta.long)
+
+comb.dta %>%
+  mutate(Year = factor(Year)) %>%
+  ggplot(aes(x = Month, y = Amount, color = Type, linetype = Year)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous(
+    breaks = 1:12,
+    minor_breaks = NULL,
+    label = month.abb
+  ) +
+  scale_y_continuous(label = scales::label_dollar(prefix = "£")) +
+  scale_linetype_manual(values = c("twodash", "solid")) +
+  scale_colour_manual(values = c("red", "green3")) +
+  ggtitle("Cummulative income and expenditure") +
+  theme_light() +
+  theme(
+    panel.background = element_rect(fill = "#FFF8DC"),
+    plot.background = element_rect(fill = "#FFF8DC"),
+    legend.background = element_rect(fill = "#FFF8DC")
+  )
+
+```
+
+```{r}
+#| label: fees
+#| echo: false
+
+stripe <- read_xlsx(fn, sheet = "Stripe")
+stripe_fees <- sum(stripe[, "Fee"], na.rm = TRUE)
+
+sumup <- read_xlsx(fn, sheet = "SumUp")
+sumup_fees <- sum(sumup[, "Fee"], na.rm = TRUE)
+```
+
+## Income and Expenditure
+
+-   Total income since 1 January 2025 is £`r total.income`
+-   Total expenditure since 1 January 2025 is £`r total.expenditure`
+-   **The current year's `r ifelse(total.income - total.expenditure > 0, "surplus", "deficit")` is £`r total.income - total.expenditure`**
+-   Current account balance £`r as.numeric(dta[nrows,6])`
+-   Savings account balance £`r savings.balance`
+
+```{r}
+#| label: summary
+#| echo: false
+
+sum_tab <- bind_rows(sum_tab, savings.sum_tab)
+nrow_sum <- dim(sum_tab)[1]
+
+sum_tab %>%
+  kbl(format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = FALSE, html_font = "Georgia") %>%
+  # row_spec(nrow_sum, bold = TRUE, color = "white", background = "black")%>%
+  row_spec(0, bold = TRUE) %>%
+  row_spec(0:nrow_sum, color = "#000080")
+#  kable_styling(latex_options = "hold_position")
+
+```
+
+```{r}
+#| label: exhibitionfunctions
+#| echo: false
+
+calc_totals <- function(tabdata) {
+  tot_row <- tibble(
+    Category = "TOTAL",
+    Income = sum(tabdata[, "Income"]),
+    Expenditure = sum(tabdata[, "Expenditure"])
+  )
+  bind_rows(tabdata, tot_row)
+}
+
+calc_exhibitions <- function(dta, exhibition = "Open") {
+  dta %>%
+    mutate(Date = lubridate::ymd(Date), Month = lubridate::month(Date)) %>%
+    filter(Exhibition == exhibition) %>%
+    group_by(Category) %>%
+    summarise(
+      Income = sum(Income, na.rm = TRUE),
+      Expenditure = sum(Expenditure, na.rm = TRUE)
+    ) %>%
+    calc_totals(.)
+}
+
+
+exhibition_table <- function(dta) {
+  n <- dim(dta)[1]
+
+  dta %>%
+    kbl(format.args = list(big.mark = ",")) %>%
+    kable_classic(full_width = FALSE, html_font = "Georgia") %>%
+    row_spec(0:n, color = "#000080") %>%
+    row_spec(n, bold = TRUE, color = "white", background = "black") %>%
+    row_spec(0, bold = TRUE)
+}
+
+exhibition_outcome <- function(dta) {
+  n <- dim(dta)[1]
+  as.numeric(dta[n, 2] - dta[n, 3])
+}
+
+```
+
+```{r}
+#| label: exhibitionprocessing
+#| echo: false
+#| message: false
+
+members_dta <- calc_exhibitions(dta, "Members")
+
+open_dta <- calc_exhibitions(dta)
+
+ya_dta <- calc_exhibitions(dta, "Young artists")
+
+
+```
+
+## Members exhibition
+
+```{r}
+#| label: members
+#| echo: false
+
+exhibition_table(members_dta)
+members_outcome <- exhibition_outcome(members_dta)
+
+```
+
+-   **Members exhibition cost: £`r -members_outcome`**
+
+## Young artists exhibition
+
+```{r}
+#| label: ya
+#| echo: false
+
+exhibition_table(ya_dta)
+ya_outcome <- exhibition_outcome(ya_dta)
+
+```
+
+-   **Young artists exhibition cost: £`r -ya_outcome`**
+
+## Open exhibition
+
+```{r}
+#| label: open
+#| echo: false
+
+exhibition_table(open_dta)
+open_outcome <- exhibition_outcome(open_dta)
+
+```
+
+-   **Open artists exhibition surplus: £`r open_outcome`**
+
+*Notes*
+
+-   Stripe fees: £`r stripe_fees`
+-   SumUp fees: £`r sumup_fees`
