@@ -352,7 +352,14 @@ open_outcome <- exhibition_outcome(open_dta)
 
 ```
 
--   **Open artists exhibition surplus: £`r open_outcome`**
+***Notes:***
+
+-   The "Other income" of £850 arose because someone accidentally paid twice for a painting. It is balanced by the "Refund" for the same amount. 
+
+-   Awaiting invoices from exhibition organisers and St John's College.  I expect St John's invoice to be around £2k.
+
+
+-   **Open artists exhibition surplus to date: £`r open_outcome`**
 
 *Notes*
 

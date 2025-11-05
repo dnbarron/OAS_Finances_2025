@@ -1,18 +1,20 @@
 ---
-title: "OAS Treasure's Report"
+title: "OAS Treasurer's Report"
 author: "David Barron"
-date: "`r format(Sys.Date(), '%d %B %Y' )`"
+date: last-modified
+date-format: DD MMMM YYYY
 format:
   html:
     backgroundcolor: '#FFF8DC'
     fontcolor: '#000080'
     mainfont: Georgia
+  pdf: default
 echo: false
 ---
 
 ```{r}
 #| label: load-packages
-#| include: false
+#| message: false
 library(tidyverse)
 library(kableExtra)
 library(here)
@@ -22,6 +24,30 @@ library(tidyverse)
 year <- 2025 # for filename
 prevYear <- 2024
 
+```
+
+```{r}
+#| label: numberformat
+knit_print.integer = function(x, ...) {
+  prettyNum(x, big.mark = ",")
+}
+registerS3method(
+  "knit_print",
+  "integer",
+  knit_print.integer,
+  envir = asNamespace("knitr")
+)
+
+# Custom print method for large numerics
+knit_print.numeric = function(x, ...) {
+  prettyNum(x, big.mark = ",")
+}
+registerS3method(
+  "knit_print",
+  "numeric",
+  knit_print.numeric,
+  envir = asNamespace("knitr")
+)
 ```
 
 ```{r}
@@ -99,26 +125,25 @@ nrows <- nrow(dta)
 dta.sum <- sum_dta(dta)
 savings.dta.sum <- sum_dta(savings.dta)
 
-dta.cumsum <- calc.cumsum(dta.sum)
-savings.dta.cumsum <- calc.cumsum(savings.dta.sum)
+# Combine current and savings accounts
+comb.dta <- full_join(dta.sum, savings.dta.sum, by = "Month")
+
+# Add incomes and expenditures from the two accounts
+comb.dta <- comb.dta %>%
+  mutate(Inc = Inc.x + Inc.y, Expend = Expend.x + Expend.y) %>%
+  select(Month, Inc, Expend) %>%
+  replace(is.na(.), 0) # if there have been no transactions in a month
+
+# Calculate cummulative income and expenditure over the year to date
+dta.cumsum <- calc.cumsum(comb.dta)
 
 num.months <- dim(dta.cumsum)[1]
-num.months.sav <- dim(savings.dta.cumsum)[1]
 
+# Long format for printing
 dta.long <- calc.long(dta.cumsum)
-savings.dta.long <- calc.long(savings.dta.cumsum)
 
-total.dta.long.dta <- full_join(
-  dta.long,
-  savings.dta.long,
-  by = c("Month", "Type")
-)
-total.dta.long.dta[is.na(total.dta.long.dta[, 4]), 4] <- 0
-
-total.dta.long <- total.dta.long.dta %>%
-  mutate(Amount = Amount.x + Amount.y, Year = year) %>% #need a year variable for when data is combined
-  select(Month, Type, Amount, Year)
-
+total.dta.long <- dta.long %>%
+  mutate(Year = year)
 
 nrow.savings <- nrow(savings.dta)
 savings.balance <- as.numeric(savings.dta[nrow.savings, 6])
@@ -141,7 +166,6 @@ total.expenditure <- sum(sum_tab$Expenditure)
 
 # Read and process previous year's data
 prevfn <- paste0("OAS ", prevYear, ".xlsx")
-
 
 prev.dta <- read_dta(prevfn, sheet = "Current account")
 prev.savings.dta <- read_dta(prevfn, sheet = "Savings account")
@@ -255,6 +279,7 @@ sumup_fees <- sum(sumup[, "Fee"], na.rm = TRUE)
 ```{r}
 #| label: summary
 #| echo: false
+#| output: asis
 
 sum_tab <- bind_rows(sum_tab, savings.sum_tab)
 nrow_sum <- dim(sum_tab)[1]
@@ -303,7 +328,8 @@ exhibition_table <- function(dta) {
     kable_classic(full_width = FALSE, html_font = "Georgia") %>%
     row_spec(0:n, color = "#000080") %>%
     row_spec(n, bold = TRUE, color = "white", background = "black") %>%
-    row_spec(0, bold = TRUE)
+    row_spec(0, bold = TRUE) %>%
+    kable_styling(latex_options = c("hold_position"), position = "center")
 }
 
 exhibition_outcome <- function(dta) {
@@ -332,6 +358,7 @@ ya_dta <- calc_exhibitions(dta, "Young artists")
 ```{r}
 #| label: members
 #| echo: false
+#| output: asis
 
 exhibition_table(members_dta)
 members_outcome <- exhibition_outcome(members_dta)
@@ -345,6 +372,7 @@ members_outcome <- exhibition_outcome(members_dta)
 ```{r}
 #| label: ya
 #| echo: false
+#| output: asis
 
 exhibition_table(ya_dta)
 ya_outcome <- exhibition_outcome(ya_dta)
@@ -358,13 +386,22 @@ ya_outcome <- exhibition_outcome(ya_dta)
 ```{r}
 #| label: open
 #| echo: false
+#| output: asis
 
 exhibition_table(open_dta)
 open_outcome <- exhibition_outcome(open_dta)
 
 ```
 
--   **Open artists exhibition surplus: £`r open_outcome`**
+***Notes:***
+
+-   The "Other income" of £850 arose because someone accidentally paid twice for a painting. It is balanced by the "Refund" for the same amount. 
+
+-   Awaiting invoices from one exhibition organiser and St John's College.  I expect the St Johns invoice to be around £2k.
+  
+-   One artist is yet to pay the £30 commission that is due to us from a direct sale.
+
+-   **Open artists exhibition surplus to date: £`r open_outcome`**
 
 *Notes*
 
