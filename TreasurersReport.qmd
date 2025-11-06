@@ -8,7 +8,6 @@ format:
     backgroundcolor: '#FFF8DC'
     fontcolor: '#000080'
     mainfont: Georgia
-  pdf: default
 echo: false
 ---
 
@@ -19,7 +18,6 @@ library(tidyverse)
 library(kableExtra)
 library(here)
 library(readxl)
-library(tidyverse)
 
 year <- 2025 # for filename
 prevYear <- 2024
@@ -57,8 +55,8 @@ registerS3method(
 
 # Reads data from spreadsheet containing bank transactions
 read_dta <- function(fn, sheet) {
-  read_xlsx(fn, sheet = sheet) %>%
-    filter(Category != "Transfer Out") %>% # remove transfers between accounts
+  read_xlsx(fn, sheet = sheet) |>
+    filter(Category != "Transfer Out") |> # remove transfers between accounts
     filter(Category != "Transfer In")
 }
 
@@ -110,6 +108,13 @@ calc.sum <- function(dta) {
     )
 }
 
+combine_data <- function(current, savings) {
+  full_join(current, savings, by = "Month") %>%
+    mutate(Inc = Inc.x + Inc.y, Expend = Expend.x + Expend.y) %>%
+    select(Month, Inc, Expend) %>%
+    replace(is.na(.), 0) # if there have been no transactions in a month
+}
+
 ```
 
 ```{r}
@@ -126,13 +131,7 @@ dta.sum <- sum_dta(dta)
 savings.dta.sum <- sum_dta(savings.dta)
 
 # Combine current and savings accounts
-comb.dta <- full_join(dta.sum, savings.dta.sum, by = "Month")
-
-# Add incomes and expenditures from the two accounts
-comb.dta <- comb.dta %>%
-  mutate(Inc = Inc.x + Inc.y, Expend = Expend.x + Expend.y) %>%
-  select(Month, Inc, Expend) %>%
-  replace(is.na(.), 0) # if there have been no transactions in a month
+comb.dta <- combine_data(dta.sum, savings.dta.sum)
 
 # Calculate cummulative income and expenditure over the year to date
 dta.cumsum <- calc.cumsum(comb.dta)
@@ -170,43 +169,53 @@ prevfn <- paste0("OAS ", prevYear, ".xlsx")
 prev.dta <- read_dta(prevfn, sheet = "Current account")
 prev.savings.dta <- read_dta(prevfn, sheet = "Savings account")
 
-prev.nrows <- nrow(prev.dta)
-
-# Summary of income and expenditure by month
-
 prev.dta.sum <- sum_dta(prev.dta)
 prev.savings.dta.sum <- sum_dta(prev.savings.dta)
 
+prev.nrows <- nrow(prev.dta)
+
+prev.comb.dta <- combine_data(prev.dta.sum, prev.savings.dta.sum)
+
+prev.dta.cumsum <- calc.cumsum(prev.comb.dta)
+
+prev.dta.long <- calc.long(prev.dta.cumsum)
+
+prev.total.dta.long <- prev.dta.long %>%
+  mutate(Year = prevYear)
+
+# Summary of income and expenditure by month
+
+#! prev.dta.sum <- sum_dta(prev.dta)
+#! prev.savings.dta.sum <- sum_dta(prev.savings.dta)
+
 # calculate cummulative amounts for plotting
 
-prev.dta.cumsum <- calc.cumsum(prev.dta.sum)
-prev.savings.dta.cumsum <- calc.cumsum(prev.savings.dta.sum)
+#prev.dta.cumsum <- calc.cumsum(prev.dta.sum)
+#prev.savings.dta.cumsum <- calc.cumsum(prev.savings.dta.sum)
 
-prev.num.months <- dim(prev.dta.cumsum)[1]
-prev.num.months.sav <- dim(prev.savings.dta.cumsum)[1]
+#prev.num.months <- dim(prev.dta.cumsum)[1]
+#prev.num.months.sav <- dim(prev.savings.dta.cumsum)[1]
 
 # Transform data for plotting
 
-prev.dta.long <- calc.long(prev.dta.cumsum)
-prev.savings.dta.long <- calc.long(prev.savings.dta.cumsum)
-
+#prev.dta.long <- calc.long(prev.dta.cumsum)
+#prev.savings.dta.long <- calc.long(prev.savings.dta.cumsum)
 
 # Add together amounts from current and savings accounts
 # Have to take account of times when there have been no changes to savings account
 #  during the current month
 
-prev.total.dta.long.dta <- full_join(
-  prev.dta.long,
-  prev.savings.dta.long,
-  by = c("Month", "Type")
-)
-prev.total.dta.long.dta[is.na(prev.total.dta.long.dta[, 4]), 4] <- 0
+#prev.total.dta.long.dta <- full_join(
+#  prev.dta.long,
+#  prev.savings.dta.long,
+#  by = c("Month", "Type")
+#)
+#prev.total.dta.long.dta[is.na(prev.total.dta.long.dta[, 4]), 4] <- 0
 
-prev.total.dta.long <- prev.total.dta.long.dta %>%
-  mutate(Amount = Amount.x + Amount.y, Year = prevYear) %>% # need a Year variable for when data is combined
-  filter(!is.na(Month)) %>%
-  select(Month, Type, Amount, Year)
-
+#prev.total.dta.long <- prev.total.dta.long.dta %>%
+#  mutate(Amount = Amount.x + Amount.y, Year = prevYear) %>% # need a Year variable for when data is combined
+#  filter(!is.na(Month)) %>%
+#  select(Month, Type, Amount, Year)
 
 prev.nrow.savings <- nrow(prev.savings.dta)
 prev.savings.balance <- as.numeric(prev.savings.dta[prev.nrow.savings, 6])
@@ -215,11 +224,9 @@ prev.sum_tab <- calc.sum(prev.dta)
 
 prev.savings.sum_tab <- calc.sum(prev.savings.dta)
 
-prev.total.income <- as.numeric(prev.dta.cumsum[prev.num.months, 2]) +
-  as.numeric(prev.savings.dta.cumsum[prev.num.months.sav, 2])
+prev.total.income <- as.numeric(prev.dta.cumsum[12, 2])
 
-prev.total.expenditure <- as.numeric(prev.dta.cumsum[prev.num.months, 3]) +
-  as.numeric(prev.savings.dta.cumsum[prev.num.months.sav, 3])
+prev.total.expenditure <- as.numeric(prev.dta.cumsum[12, 3])
 
 ```
 
