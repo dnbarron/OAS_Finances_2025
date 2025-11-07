@@ -110,9 +110,9 @@ calc.sum <- function(dta) {
 
 combine_data <- function(current, savings) {
   full_join(current, savings, by = "Month") %>%
+    replace(is.na(.), 0) %>% # if there have been no transactions in a month
     mutate(Inc = Inc.x + Inc.y, Expend = Expend.x + Expend.y) %>%
-    select(Month, Inc, Expend) %>%
-    replace(is.na(.), 0) # if there have been no transactions in a month
+    select(Month, Inc, Expend)
 }
 
 ```
@@ -404,7 +404,7 @@ open_outcome <- exhibition_outcome(open_dta)
 
 -   The "Other income" of £850 arose because someone accidentally paid twice for a painting. It is balanced by the "Refund" for the same amount. 
 
--   Awaiting invoices from one exhibition organiser and St John's College.  I expect the St Johns invoice to be around £2k.
+-   Awaiting an invoice from one exhibition organiser.
   
 -   One artist is yet to pay the £30 commission that is due to us from a direct sale.
 
