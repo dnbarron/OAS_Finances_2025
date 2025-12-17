@@ -386,6 +386,7 @@ ya_outcome <- exhibition_outcome(ya_dta)
 
 ```
 
+- The £200 'income' for Venue Hire was a refund because we were overcharged. 
 -   **Young artists exhibition cost: £`r -ya_outcome`**
 
 ## Open exhibition
@@ -403,11 +404,6 @@ open_outcome <- exhibition_outcome(open_dta)
 ***Notes:***
 
 -   The "Other income" of £850 arose because someone accidentally paid twice for a painting. It is balanced by the "Refund" for the same amount. 
-
--   Awaiting an invoice from one exhibition organiser.
-  
--   One artist is yet to pay the £30 commission that is due to us from a direct sale.
-
 -   **Open artists exhibition surplus to date: £`r open_outcome`**
 
 *Notes*
